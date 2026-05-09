@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANDHAKAR CARD GENERATOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Bebas+Neue&family=Noto+Sans+Devanagari:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#07070f;
+  --surface:#0d0d1a;
+  --border:#1a1a2e;
+  --red:#c0392b;
+  --blue:#1a4fa0;
+  --green:#1a6b3a;
+  --text:#dde0f5;
+  --muted:#40405a;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Rajdhani',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:48px 20px 80px;
+  background-image:
+    radial-gradient(ellipse at 15% 10%,rgba(192,57,43,.07) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 90%,rgba(26,79,160,.07) 0%,transparent 55%);
+}
+
+/* ─── HEADER ─── */
+.hdr{text-align:center;margin-bottom:48px}
+.hdr-hi{font-family:'Noto Sans Devanagari',sans-serif;font-size:clamp(24px,5vw,40px);font-weight:900;color:#fff;letter-spacing:2px;line-height:1.1}
+.hdr-en{font-family:'Bebas Neue',sans-serif;font-size:clamp(10px,2vw,13px);letter-spacing:10px;color:var(--muted);margin-top:5px}
+.hdr-bar{width:90px;height:2px;background:linear-gradient(90deg,var(--blue),var(--red),var(--green));margin:14px auto 0;border-radius:2px}
+
+/* ─── FORM ─── */
+.form{width:100%;max-width:420px;margin-bottom:48px;display:flex;flex-direction:column;gap:16px}
+.lbl{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);font-weight:700;display:block;margin-bottom:5px}
+input,select{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);padding:12px 14px;font-family:'Rajdhani',sans-serif;
+  font-size:15px;font-weight:600;outline:none;border-radius:3px;
+  transition:border-color .2s;-webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus{border-color:var(--red)}
+select option{background:#0d0d1a}
+.dob-row{display:flex;gap:8px}
+.dob-row select{flex:1}
+.gen-btn{
+  background:transparent;border:1px solid var(--red);color:#fff;
+  padding:13px;font-family:'Bebas Neue',sans-serif;font-size:17px;
+  letter-spacing:6px;cursor:pointer;border-radius:3px;width:100%;
+  transition:background .25s;margin-top:4px;
+}
+.gen-btn:hover{background:rgba(192,57,43,.2)}
+
+/* photo upload */
+.up-wrap{display:flex;align-items:center;gap:12px}
+.up-btn{
+  flex:1;background:var(--surface);border:1px dashed var(--border);
+  color:var(--muted);padding:11px;font-family:'Rajdhani',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;
+  border-radius:3px;text-align:center;transition:border-color .2s,color .2s;
+}
+.up-btn:hover{border-color:var(--red);color:var(--text)}
+.up-name{font-size:11px;color:var(--muted);letter-spacing:1px;white-space:nowrap;overflow:hidden;max-width:140px;text-overflow:ellipsis}
+#fi{display:none}
+
+/* ─── OUTPUT ─── */
+.out{display:none;flex-direction:column;align-items:center;gap:24px;width:100%}
+.out.show{display:flex}
+
+/* card scaler */
+.scaler{width:100%;max-width:860px}
+
+/* ═══ THE CARD ═══
+   Original image is 1393×985px → ratio ~1.414
+   We'll render at 860×608 to match */
+#card{
+  width:860px;
+  height:608px;
+  position:relative;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 36px 90px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.05);
+}
+
+/* Background = the uploaded card image */
+.card-bg{
+  position:absolute;inset:0;
+  background:url('cardbg.png') center/cover no-repeat;
+  border-radius:22px;
+}
+
+/* ── PHOTO OVERLAY ──
+   In the reference image the photo box sits roughly:
+   left: 7%, top: 28%, width: 22%, height: 43% */
+.ov-photo{
+  position:absolute;
+  left:6.5%;top:27%;
+  width:21.5%;height:44%;
+  border-radius:6px;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,rgba(160,158,196,.35),rgba(120,118,170,.35));
+}
+.ov-photo svg{width:60%;height:10%;opacity:.5}
+.ov-photo img.upl{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border-radius:5px;
+}
+
+/* ── NAME, DOB, GENDER overlays
+   Reference: info section starts at ~35% left, ~32% top
+   Each row offset by ~12% height */
+/* ── INFO TEXT ── */
+.ov-info{
+  position:absolute;
+
+  left:38%;
+  top:40%;
+
+  right:8%;
+
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+/* EACH ROW */
+.ov-row{
+  display:flex;
+  align-items:center;
+}
+
+/* LABELS */
+.ov-lbl{
+  font-family:'Rajdhani',sans-serif;
+
+  font-size:28px;
+  font-weight:900;
+
+  color:#111;
+
+  letter-spacing:1px;
+
+  min-width:150px;
+}
+
+/* VALUES */
+.ov-val{
+  font-family:'Rajdhani',sans-serif;
+
+  font-size:30px;
+  font-weight:800;
+
+  color:#111;
+
+  letter-spacing:.5px;
+}
+/* ── QR overlay
+   Reference: right ~78%, top ~28%, width ~17%, height ~30% */
+.ov-qr{
+  position:absolute;
+  right:3%;top:40%;
+  width:17%;
+  aspect-ratio:1;
+  background:#fff;
+  border-radius:5px;
+  padding:5px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+#qr canvas,#qr img{width:100%!important;height:100%!important}
+
+/* ── CARD NUMBER overlay
+   Reference: bottom ~63% from top (i.e. top ~62%), centered */
+.ov-num{
+  position:absolute;
+  bottom:13%;left:0;right:0;
+  text-align:center;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(28px,4.5vw,52px);
+  letter-spacing:8px;color:#111;
+  text-shadow:0 1px 3px rgba(255,255,255,.4);
+}
+
+/* ─── DOWNLOAD ─── */
+.dl-btn{
+  background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:var(--text);padding:12px 44px;font-family:'Bebas Neue',sans-serif;
+  font-size:15px;letter-spacing:6px;cursor:pointer;border-radius:3px;
+  transition:background .2s,border-color .2s;
+}
+.dl-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.3)}
+
+@media(max-width:900px){
+  .scaler{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+/* ── PHOTO OVERLAY ──
+   Smaller image and moved slightly downward */
+.ov-photo{
+  position:absolute;
+  left:5.5%;
+  top:40%;
+  width:20%;
+  height:30%;
+  border-radius:6px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(150deg,rgba(160,158,196,.35),rgba(120,118,170,.35));
+}
+
+.ov-photo svg{
+  width:50%;
+  height:10%;
+  opacity:.5;
+}
+
+.ov-photo img.upl{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:5px;
+}
+
+/* ── HIDE QR ── */
+
+/* ── TEXT POSITION ── */
+/* ── INFO TEXT ── */
+.ov-info{
+  position:absolute;
+
+  left:28%;
+  top:40%;
+
+  right:8%;
+
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+/* EACH ROW */
+.ov-row{
+  display:flex;
+  align-items:center;
+}
+
+/* LABELS */
+.ov-lbl{
+  font-family:'Rajdhani',sans-serif;
+
+  font-size:28px;
+  font-weight:900;
+
+  color:#111;
+
+  letter-spacing:1px;
+
+  min-width:150px;
+}
+
+/* VALUES */
+.ov-val{
+  font-family:'Rajdhani',sans-serif;
+
+  font-size:30px;
+  font-weight:800;
+
+  color:#111;
+
+  letter-spacing:.5px;
+}
+.ov-num{
+
+  font-size:32px;   /* smaller number */
+
+}
+
+
+#cv-name{
+  line-height:1.1;
+  display:block;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-hi">अंधकार कार्ड</div>
+  <div class="hdr-en">ANDHAKAR CARD GENERATOR</div>
+  <div class="hdr-bar"></div>
+</div>
+
+<!-- FORM -->
+<div class="form">
+  <div>
+    <label class="lbl">Full Name</label>
+    <input id="n" type="text" placeholder="Enter your full name" maxlength="26">
+  </div>
+  <div>
+    <label class="lbl">Date of Birth</label>
+    <div class="dob-row">
+      <select id="dd"><option value="" disabled selected>Day</option></select>
+      <select id="mm">
+        <option value="" disabled selected>Month</option>
+        <option value="01">January</option><option value="02">February</option>
+        <option value="03">March</option><option value="04">April</option>
+        <option value="05">May</option><option value="06">June</option>
+        <option value="07">July</option><option value="08">August</option>
+        <option value="09">September</option><option value="10">October</option>
+        <option value="11">November</option><option value="12">December</option>
+      </select>
+      <select id="yy"><option value="" disabled selected>Year</option></select>
+    </div>
+  </div>
+  <div>
+    <label class="lbl">Gender</label>
+    <select id="g">
+      <option value="" disabled selected>Select gender</option>
+      <option value="MALE">Male</option>
+      <option value="FEMALE">Female</option>
+      <option value="OTHER">Other / Prefer not to say</option>
+    </select>
+  </div>
+  <div>
+    <label class="lbl">Photo <span style="color:var(--muted)">(optional)</span></label>
+    <div class="up-wrap">
+      <div class="up-btn" onclick="document.getElementById('fi').click()">↑ &nbsp;UPLOAD PHOTO</div>
+      <span class="up-name" id="fn">No file chosen</span>
+    </div>
+    <input id="fi" type="file" accept="image/*" onchange="handlePhoto(this)">
+  </div>
+  <button class="gen-btn" onclick="gen()">GENERATE CARD</button>
+</div>
+
+<!-- OUTPUT -->
+<div class="out" id="out">
+  <div class="scaler">
+    <div id="card">
+
+      <!-- BACKGROUND: the card image -->
+      <div class="card-bg"></div>
+
+      <!-- PHOTO AREA -->
+      <div class="ov-photo" id="photo-box">
+        <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="32" r="23" fill="#3a3856"/>
+          <path d="M8 120 Q8 74 50 69 Q92 74 92 120Z" fill="#3a3856"/>
+        </svg>
+      </div>
+
+<!-- INFO OVERLAY -->
+<div class="ov-info">
+
+  <div class="ov-row">
+    <span class="ov-lbl">NAME :</span>
+    <span class="ov-val" id="cv-name"></span>
+  </div>
+
+  <div class="ov-row">
+    <span class="ov-lbl">DOB :</span>
+    <span class="ov-val" id="cv-dob"></span>
+  </div>
+
+  <div class="ov-row">
+    <span class="ov-lbl">GENDER :</span>
+    <span class="ov-val" id="cv-gender"></span>
+  </div>
+
+</div>
+
+      <!-- QR OVERLAY -->
+      <div class="ov-qr"><div id="qr"></div></div>
+
+      <!-- NUMBER OVERLAY -->
+      <div class="ov-num" id="cv-num"></div>
+
+    </div><!-- /card -->
+  </div>
+  <button class="dl-btn" onclick="dl()">↓ &nbsp; DOWNLOAD CARD</button>
+</div>
+
+<script>
+// Populate dropdowns
+window.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('dd');
+  for(let i=1;i<=31;i++){
+    const o=document.createElement('option');
+    o.value=String(i).padStart(2,'0');
+    o.textContent=String(i).padStart(2,'0');
+    d.appendChild(o);
+  }
+  const y=document.getElementById('yy');
+  const cy=new Date().getFullYear();
+  for(let i=cy;i>=1920;i--){
+    const o=document.createElement('option');
+    o.value=i;o.textContent=i;y.appendChild(o);
+  }
+});
+
+let photoData=null;
+function handlePhoto(inp){
+  const f=inp.files[0];if(!f)return;
+  const nm=f.name;
+  document.getElementById('fn').textContent=nm.length>22?nm.slice(0,20)+'…':nm;
+  const r=new FileReader();
+  r.onload=e=>{
+    photoData=e.target.result;
+    const box=document.getElementById('photo-box');
+    let img=box.querySelector('img.upl');
+    if(!img){img=document.createElement('img');img.className='upl';box.appendChild(img)}
+    img.src=photoData;
+    box.querySelector('svg').style.display='none';
+  };
+  r.readAsDataURL(f);
+}
+
+function nameToNum(name){
+  const c=name.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  let d='';
+  for(let i=0;i<c.length&&d.length<16;i++) d+=c.charCodeAt(i).toString();
+  while(d.length<16) d+=d.length.toString();
+  return d.slice(0,16).match(/.{1,4}/g).join(' ');
+}
+
+function gen(){
+  const name=document.getElementById('n').value.trim();
+  const dd=document.getElementById('dd').value;
+  const mm=document.getElementById('mm').value;
+  const yy=document.getElementById('yy').value;
+  const g=document.getElementById('g').value;
+  if(!name||!dd||!mm||!yy||!g){alert('Please fill in all required fields.');return;}
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const parts = name.trim().toUpperCase().split(" ");
+
+if(parts.length >= 2){
+
+  const firstName = parts[0];
+
+  const lastName = parts.slice(1).join(" ");
+
+  document.getElementById('cv-name').innerHTML =
+    firstName + "<br>" + lastName;
+
+}else{
+
+  document.getElementById('cv-name').textContent =
+    name.toUpperCase();
+
+}
+  document.getElementById('cv-dob').textContent=dd+' '+months[parseInt(mm)-1]+' '+yy;
+  document.getElementById('cv-gender').textContent=g;
+  document.getElementById('cv-num').textContent=nameToNum(name);
+
+  // QR
+  const qc=document.getElementById('qr');qc.innerHTML='';
+  new QRCode(qc,{
+    text:'https://youtube.com/shorts/MINnwsZMZN8?si=Ue2ZgkkCZHGwy2VW',
+    width:200,height:200,
+    colorDark:'#000000',colorLight:'#ffffff',
+    correctLevel:QRCode.CorrectLevel.H
+  });
+
+  const out=document.getElementById('out');
+  out.classList.add('show');
+  out.scrollIntoView({behavior:'smooth',block:'start'});
+  scale();
+}
+
+function scale(){
+  const card=document.getElementById('card');
+  const wrap=card.parentElement;
+  const mw=wrap.clientWidth;
+  const cw=860;
+  if(mw<cw){
+    const s=mw/cw;
+    card.style.transform='scale('+s+')';
+    card.style.transformOrigin='top left';
+    wrap.style.height=(608*s)+'px';
+  }else{
+    card.style.transform='';
+    wrap.style.height='608px';
+  }
+}
+window.addEventListener('resize',scale);
+
+function dl(){
+  const card=document.getElementById('card');
+  const prev=card.style.transform;
+  card.style.transform='';
+  card.parentElement.style.height='608px';
+  html2canvas(card,{
+    scale:2,useCORS:true,allowTaint:true,
+    backgroundColor:null,logging:false
+  }).then(c=>{
+    card.style.transform=prev;scale();
+    const a=document.createElement('a');
+    a.download='andhakar-card.png';
+    a.href=c.toDataURL('image/png');
+    a.click();
+  });
+}
+
+</script>
+</body>
+</html>
